@@ -1,9 +1,11 @@
 
 const toolTemplate = function(values, isViewer = false) {
   return `
+<div style="margin:auto;width:${values.containerWidth}%;">
     <a class="button no-underline no-border-radius" href="${values?.action?.url}" target="${values?.action?.target}">
      <img align="center" border="0" src="${values?.logo}" alt="" title="" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 100%;max-width: 480px;" width="480"/>
     </a>  
+    </div>
   `
 }
 
@@ -20,6 +22,21 @@ const editorTemplate = function(value, updateValue,data) {
       ${logoItemTemplate({logos: data.logos})}
 </div>`
 }
+
+unlayer.registerPropertyEditor({
+  name: 'percentage_widget',
+  layout: 'bottom',
+  Widget: unlayer.createWidget({
+    render: function(value, updateValue,data) {
+      return (`<p class="blockbuilder-widget-label">Container Width</p><input style="width: 100%;" type="range" class="form-range" min="0" max="100" step="1" value="${value}" id="percentage_range">`)
+    },
+    mount(node, value, updateValue, data) {
+      $('#percentage_range').on('change',function(e) {
+        updateValue(e.target.value);
+      })
+    }
+  })
+})
 
 unlayer.registerPropertyEditor({
   name: 'logo_widget',
@@ -51,6 +68,11 @@ unlayer.registerTool({
           label: 'Logo',
           defaultValue: 'https://choose.aetautomotive.com/hubfs/AET_Auto_green_logo.png',
           widget: 'logo_widget'
+        },
+        containerWidth: {
+          label: "Container Width",
+          defaultValue: 100,
+          widget: 'percentage_widget'
         },
         action: {
           label: 'Action Type',

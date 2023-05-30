@@ -1,6 +1,5 @@
 
 const vehicleToolTemplate = function(values, isViewer = false) {
-  console.log({values});
   return `
     ${!!values.vehicle.make ? `${vehicleItemsTemplate({
     vehicles: [values.vehicle], 
@@ -9,17 +8,19 @@ const vehicleToolTemplate = function(values, isViewer = false) {
     showTitle: values.showTitle,
     showPrice: values.showPrice,
     showTrim: values.showTrim,
-    action: values.action
-  })}` : `<p style="text-align: center; font-size: 24px; font-weight: 700;">Please select a vehicle</p>`}
+    action: values.action,
+    containerWidth: values.containerWidth + '%'
+  })}` : `<img alt="" src="https://firebasestorage.googleapis.com/v0/b/elevaetbackend.appspot.com/o/EmailTemplateHeros%2Femstudio_inventory_placeholder.png?alt=media&token=6b112ed6-210c-4fb1-84a0-701db6fd3385&_gl=1*1dyh6bb*_ga*NDc3MzQzNDAwLjE2ODQyODc3Nzc.*_ga_CW55HF8NVT*MTY4NTQ2NzM5MS4yLjEuMTY4NTQ2NzYzMC4wLjAuMA.." style="text-align: center;width: 100%;object-fit: contain;"/>`}
 </div>
   `
 }
 
 const vehicleItemsTemplate = _.template(`
 <% _.forEach(vehicles, function(item) { %>
+<div style="margin:auto;width:<%= containerWidth %>">
 <a style="text-decoration: none;" class="button no-underline no-border-radius" href="<%= action.url %>" target="<%= action.target %>">
   <div style="display: grid;height: fit-content;border: 2px solid #E9E9E9;border-radius: 10px;overflow: hidden;background: <%= backgroundColor %>;text-align: center;" class="vehicle-item" id="vehicle-item" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>" >
-  <img src="<%= item["image[0].url"] %>" style="max-height: 300px;width: 100%;object-fit: cover;" />
+  <div style="height: 0;width: 100%;padding-bottom:100%;"><img src="<%= item["image[0].url"] %>" style="width: 100%;object-fit: cover;" /></div>
   <% if (showTitle) { %>
     <p style="padding: 0 5px;font-weight: 500;font-size: 22px;line-height: 29px;color: <%= textColor %>;margin-bottom: 0;" class="vehicle-item-ymm"><%= item.year %> <%= item.make %> <%= item.model %></p>
  <% } %>
@@ -31,6 +32,7 @@ const vehicleItemsTemplate = _.template(`
  <% } %>
   </div>
   </a>
+  </div>
 <% }); %>
 `);
 
@@ -73,12 +75,29 @@ ${vehicleModalTemplate({
       showTitle: true,
       showPrice: true,
       showTrim: true,
+      containerWidth: "100%",
       action: {
         url: 'javascript:void(0);',
         target: ""
       }
 })}`
 }
+
+unlayer.registerPropertyEditor({
+  name: 'percentage_widget',
+  layout: 'bottom',
+  Widget: unlayer.createWidget({
+    render: function(value, updateValue,data) {
+      return (`<p class="blockbuilder-widget-label">Container Width</p><input style="width: 100%;" type="range" class="form-range" min="0" max="100" step="1" value="${value}" id="percentage_range">`)
+    },
+    mount(node, value, updateValue, data) {
+      $('#percentage_range').on('change',function(e) {
+        updateValue(e.target.value);
+      })
+    }
+  })
+})
+
 
 unlayer.registerPropertyEditor({
   name: 'vehicle_widget',
@@ -88,11 +107,8 @@ unlayer.registerPropertyEditor({
     mount(node, value, updateValue, data) {
 
       $('.vehicle-item').on('click',function(e) {
-
-          console.log("Click!")
           var vin = $(this).data('vin');
           var veh = data.vehicles.find(v => v.vin === vin);
-          console.log({vin, data, veh});
           if(veh) {
             updateValue(veh);
           } else {
@@ -124,6 +140,11 @@ unlayer.registerTool({
           label: 'Vehicle',
           defaultValue: {},
           widget: 'vehicle_widget'
+        },
+        containerWidth: {
+          label: "Container Width",
+          defaultValue: 100,
+          widget: 'percentage_widget'
         },
         backgroundColor: {
           label: 'Background Color',

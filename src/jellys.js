@@ -1,9 +1,11 @@
 
 const jellyToolTemplate = function(values, isViewer = false) {
   return `
+  <div style="margin:auto;width:${values.containerWidth}%;">
     <a class="button no-underline no-border-radius" href="${values?.action?.url}" target="${values?.action?.target}">
      <img align="center" border="0" src="${values?.jelly}" alt="" title="" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 100%;max-width: 480px;" width="480"/>
-    </a>  
+    </a>
+    </div>  
   `
 }
 
@@ -38,7 +40,6 @@ const recursiveJellyMenu = function(obj, results = '') {
 };
 
 const jellyEditorTemplate = function(value, updateValue,data) {
-    console.log({value,data});
 
     var out = `<div id="jelly-editor-wrapper" style="min-height: 200px;">
 
@@ -85,6 +86,21 @@ const jellyEditorTemplate = function(value, updateValue,data) {
 
     return out;
 }
+
+unlayer.registerPropertyEditor({
+  name: 'percentage_widget',
+  layout: 'bottom',
+  Widget: unlayer.createWidget({
+    render: function(value, updateValue,data) {
+      return (`<p class="blockbuilder-widget-label">Container Width</p><input style="width: 100%;" type="range" class="form-range" min="0" max="100" step="1" value="${value}" id="percentage_range">`)
+    },
+    mount(node, value, updateValue, data) {
+      $('#percentage_range').on('change',function(e) {
+        updateValue(e.target.value);
+      })
+    }
+  })
+})
 
 unlayer.registerPropertyEditor({
   name: 'jelly_widget',
@@ -165,8 +181,13 @@ unlayer.registerTool({
       options: {
         jelly: {
           label: 'Jelly',
-          defaultValue: 'https://choose.aetautomotive.com/hubfs/AET_Auto_green_logo.png',
+          defaultValue: 'https://firebasestorage.googleapis.com/v0/b/elevaetbackend.appspot.com/o/EmailTemplateHeros%2Femstudio_jelly_placeholder.png?alt=media&token=29c4a456-a572-496d-a2e4-c5b17d4c948f&_gl=1*1trgpez*_ga*NDc3MzQzNDAwLjE2ODQyODc3Nzc.*_ga_CW55HF8NVT*MTY4NTQ3MjQzMy4zLjAuMTY4NTQ3MjQzMy4wLjAuMA..',
           widget: 'jelly_widget'
+        },
+        containerWidth: {
+          label: "Container Width",
+          defaultValue: 100,
+          widget: 'percentage_widget'
         },
         action: {
           label: 'Action Type',
