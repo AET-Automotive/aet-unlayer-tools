@@ -40,7 +40,6 @@ const recursiveJellyMenu = function(obj, results = '') {
 };
 
 const jellyEditorTemplate = function(value, updateValue,data) {
-
     var out = `<div id="jelly-editor-wrapper" style="min-height: 200px;">
 
 <div id="oem-menu-wrapper" class="dropdown show oem year model trim">

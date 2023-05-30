@@ -22,13 +22,13 @@ const vehicleItemsTemplate = _.template(`
   <div style="display: grid;height: fit-content;border: 2px solid #E9E9E9;border-radius: 10px;overflow: hidden;background: <%= backgroundColor %>;text-align: center;" class="vehicle-item" id="vehicle-item" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>" >
   <div style="height: 0;width: 100%;padding-bottom:100%;"><img src="<%= item["image[0].url"] %>" style="width: 100%;object-fit: cover;" /></div>
   <% if (showTitle) { %>
-    <p style="padding: 0 5px;font-weight: 500;font-size: 22px;line-height: 29px;color: <%= textColor %>;margin-bottom: 0;" class="vehicle-item-ymm"><%= item.year %> <%= item.make %> <%= item.model %></p>
+    <p style="padding: 0 10px;font-weight: 500;font-size: 1.35em;line-height: 29px;color: <%= textColor %>;margin-bottom: 0;" class="vehicle-item-ymm"><%= item.year %> <%= item.make %> <%= item.model %></p>
  <% } %>
  <% if (showTrim) { %>
-    <p style="padding: 0 5px;font-weight: 400;font-size: 16px;line-height: 21px;color: <%= textColor %>;margin-bottom: 0;" class="vehicle-item-trim"><%= item.trim %></p>
+    <p style="padding: 0 5px;font-weight: 400;font-size: 1.1em;line-height: 21px;color: <%= textColor %>;margin-bottom: 0;" class="vehicle-item-trim"><%= item.trim %></p>
  <% } %>
  <% if (showPrice) { %>
-    <p style="font-weight: 700;font-size: 18px;line-height: 23px;color: black;margin-bottom: 10px;color: <%= textColor %>" class="vehicle-item-price"><%= numeral(item.price).format("$0,0") %></p>
+    <p style="font-weight: 700;font-size: 1.2em;line-height: 23px;color: black;margin-bottom: 10px;color: <%= textColor %>" class="vehicle-item-price"><%= numeral(item.price).format("$0,0") %></p>
  <% } %>
   </div>
   </a>
@@ -187,9 +187,13 @@ unlayer.registerTool({
   },
   transformer: (values, source) => {
     const { name, value, data } = source;
-    let newVal = { ...values }
-    newVal.action.values.href = value.url;
-    return newVal;
+    if(name === 'vehicle') {
+      let newVal = { ...values }
+      newVal.action.values.href = value.url;
+      return newVal;
+    } else {
+      return values;
+    }
   },
   values: {},
   renderer: {
