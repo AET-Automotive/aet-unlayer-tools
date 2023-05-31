@@ -17,7 +17,7 @@ const vehicleToolTemplate = function(values, isViewer = false) {
 
 const vehicleItemsTemplate = _.template(`
 <% _.forEach(vehicles, function(item) { %>
-<div style="margin:auto;width:<%= containerWidth %>">
+<div class="vehicle-container" style="margin:auto;width:<%= containerWidth %>" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>">
 <a style="text-decoration: none;" class="button no-underline no-border-radius" href="<%= action.url %>" target="<%= action.target %>">
   <div style="display: grid;height: fit-content;border: 2px solid #E9E9E9;border-radius: 10px;overflow: hidden;background: <%= backgroundColor %>;text-align: center;" class="vehicle-item" id="vehicle-item" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>" >
   <div style="height: 0;width: 100%;padding-bottom:100%;"><img src="<%= item["image[0].url"] %>" style="width: 100%;object-fit: cover;" /></div>
@@ -50,8 +50,7 @@ const vehicleModalTemplate = function (data) {
       </div>
       <div style="overflow: scroll" class="modal-body">
                 <div class="search-box d-flex mb-2">
-            <input type="text" class="form-control" placeholder="Search by make, model, year..." id="search-bar" style="width: 78%" />
-            <button id="search-btn" class="button btn btn-primary ml-2" style="width: 20%">Search</button>
+            <input type="text" class="form-control" placeholder="Search by make, model, year..." id="search-bar" style="width: 100%" />
           </div>
           <div class="products-list" style="display: grid;grid-template-columns: 1fr 1fr 1fr;grid-column-gap: 10px;grid-row-gap: 10px;align-items: center;justify-content: center;margin: auto;">
             ${vehicleItemsTemplate(data)}
@@ -66,7 +65,7 @@ const vehicleModalTemplate = function (data) {
 
 const vehicleEditorTemplate = function(value, updateValue,data) {
     return `<div class="text-center">
-<button id="chooseVehicleButton" class="button btn-primary btn btn-lg">Choose Vehicle</button>
+${data.vehicles.length > 0 ? `<button id="chooseVehicleButton" class="button btn-primary btn btn-lg">Choose Vehicle</button>` : `<p>No vehicles available</p>`}
 </div>
 ${vehicleModalTemplate({
       vehicles : data.vehicles, 
@@ -106,7 +105,7 @@ unlayer.registerPropertyEditor({
     render: vehicleEditorTemplate,
     mount(node, value, updateValue, data) {
 
-      $('.vehicle-item').on('click',function(e) {
+      $('#vehicleSelectModal .vehicle-item').on('click',function(e) {
           var vin = $(this).data('vin');
           var veh = data.vehicles.find(v => v.vin === vin);
           if(veh) {
@@ -122,6 +121,39 @@ unlayer.registerPropertyEditor({
         $('#vehicleSelectModal').modal('show');
 
       });
+
+      function debounce(timeout = 300, func) {
+        let timer;
+        return (...args) => {
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            func.apply(this, args);
+          }, timeout);
+        };
+      }
+
+      $("#search-bar").on("input",debounce(250, function(e) {
+        if(e.target.value === "") {
+            $("#vehicleSelectModal .vehicle-container").css('display','block');
+            return;
+        }
+        $("#vehicleSelectModal .vehicle-container").css('display','none');
+        try {
+          e.target.value.split(" ").forEach(w => {
+            if(w) {
+              $(`#vehicleSelectModal .vehicle-container[data-year*="${w}" i]`).css('display', 'block');
+              $(`#vehicleSelectModal .vehicle-container[data-make*="${w}" i]`).css('display', 'block');
+              $(`#vehicleSelectModal .vehicle-container[data-model*="${w}" i]`).css('display', 'block');
+              $(`#vehicleSelectModal .vehicle-container[data-trim*="${w}" i]`).css('display', 'block');
+            }
+          })
+        } catch(e) {
+          alert("Search error");
+          console.error(e);
+          $("#vehicleSelectModal .vehicle-container").css('display','block');
+        }
+      }));
+
     }
   })
 })
