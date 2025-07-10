@@ -50,7 +50,7 @@ const vehicleModalTemplate = function (data) {
       </div>
       <div style="overflow: scroll" class="modal-body">
                 <div class="search-box d-flex mb-2">
-            <input type="text" class="form-control" placeholder="Search by make, model, year..." id="search-bar" style="width: 100%" />
+            <input type="text" class="form-control" placeholder="Search by make, model, year, VIN..." id="search-bar" style="width: 100%" />
           </div>
           <div class="products-list" style="display: grid;grid-template-columns: 1fr 1fr 1fr;grid-column-gap: 10px;grid-row-gap: 10px;align-items: center;justify-content: center;margin: auto;">
             ${vehicleItemsTemplate(data)}
@@ -145,6 +145,7 @@ unlayer.registerPropertyEditor({
               $(`#vehicleSelectModal .vehicle-container[data-make*="${w}" i]`).css('display', 'block');
               $(`#vehicleSelectModal .vehicle-container[data-model*="${w}" i]`).css('display', 'block');
               $(`#vehicleSelectModal .vehicle-container[data-trim*="${w}" i]`).css('display', 'block');
+              $(`#vehicleSelectModal .vehicle-container[data-vin*="${w}" i]`).css('display', 'block');
             }
           })
         } catch(e) {
