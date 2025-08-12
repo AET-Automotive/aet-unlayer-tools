@@ -139,15 +139,30 @@ unlayer.registerPropertyEditor({
         }
         $("#vehicleSelectModal .vehicle-container").css('display','none');
         try {
-          e.target.value.split(" ").forEach(w => {
-            if(w) {
-              $(`#vehicleSelectModal .vehicle-container[data-year*="${w}" i]`).css('display', 'block');
-              $(`#vehicleSelectModal .vehicle-container[data-make*="${w}" i]`).css('display', 'block');
-              $(`#vehicleSelectModal .vehicle-container[data-model*="${w}" i]`).css('display', 'block');
-              $(`#vehicleSelectModal .vehicle-container[data-trim*="${w}" i]`).css('display', 'block');
-              $(`#vehicleSelectModal .vehicle-container[data-vin*="${w}" i]`).css('display', 'block');
+          const searchTerms = e.target.value.split(" ").filter(w => w.trim() !== "").map(w => w.toLowerCase());
+          
+          if(searchTerms.length === 0) {
+            $("#vehicleSelectModal .vehicle-container").css('display','block');
+            return;
+          }
+
+          $("#vehicleSelectModal .vehicle-container").each(function() {
+            const $container = $(this);
+            
+            const vehicleData = [
+              $container.data('year') || '',
+              $container.data('make') || '',
+              $container.data('model') || '',
+              $container.data('trim') || '',
+              $container.data('vin') || ''
+            ].join(' ').toLowerCase();
+            
+            const allTermsMatch = searchTerms.every(term => vehicleData.includes(term));
+            
+            if(allTermsMatch) {
+              $container.css('display', 'block');
             }
-          })
+          });
         } catch(e) {
           alert("Search error");
           console.error(e);
