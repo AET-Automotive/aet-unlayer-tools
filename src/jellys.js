@@ -221,7 +221,7 @@ unlayer.registerTool({
       css: function(values) {
         return `
           .dropdown-menu {
-            max-height: 100px !important;
+            max-height: 200px !important;
             overflow-y: scroll !important;
           }
           .dropdown-menu::-webkit-scrollbar {
