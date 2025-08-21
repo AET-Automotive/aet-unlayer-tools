@@ -40,27 +40,7 @@ const recursiveJellyMenu = function(obj, results = '') {
 };
 
 const jellyEditorTemplate = function(value, updateValue,data) {
-    var out = `<style>
-  .dropdown-menu {
-    max-height: 100px !important;
-    overflow-y: scroll !important;
-  }
-  .dropdown-menu::-webkit-scrollbar {
-    width: 8px;
-  }
-  .dropdown-menu::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-  }
-  .dropdown-menu::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-  }
-  .dropdown-menu::-webkit-scrollbar-thumb:hover {
-    background: #555;
-  }
-</style>
-<div id="jelly-editor-wrapper" style="min-height: 200px;">
+    var out = `<div id="jelly-editor-wrapper" style="min-height: 200px;">
 
 <div id="oem-menu-wrapper" class="dropdown show oem year model trim">
   <a class="btn btn-secondary w-100 dropdown-toggle" href="#" role="button" id="oemMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -239,6 +219,26 @@ unlayer.registerTool({
     },
     head: {
       css: function(values) {
+        return `
+          .dropdown-menu {
+            max-height: 100px !important;
+            overflow-y: scroll !important;
+          }
+          .dropdown-menu::-webkit-scrollbar {
+            width: 8px;
+          }
+          .dropdown-menu::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+          }
+          .dropdown-menu::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+          }
+          .dropdown-menu::-webkit-scrollbar-thumb:hover {
+            background: #555;
+          }
+        `;
       },
       js: function(values) {
       }
