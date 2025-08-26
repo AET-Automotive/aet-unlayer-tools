@@ -219,6 +219,26 @@ unlayer.registerTool({
     },
     head: {
       css: function(values) {
+        return `
+          .dropdown-menu {
+            max-height: 200px !important;
+            overflow-y: scroll !important;
+          }
+          .dropdown-menu::-webkit-scrollbar {
+            width: 8px;
+          }
+          .dropdown-menu::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+          }
+          .dropdown-menu::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+          }
+          .dropdown-menu::-webkit-scrollbar-thumb:hover {
+            background: #555;
+          }
+        `;
       },
       js: function(values) {
       }
