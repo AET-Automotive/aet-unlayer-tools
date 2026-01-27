@@ -236,8 +236,16 @@ unlayer.registerTool({
   transformer: (values, source) => {
     const { name, value, data } = source;
     if(name === 'vehicle') {
-      let newVal = { ...values }
-      newVal.action.values.href = value.url;
+      let newVal = { 
+        ...values,
+        action: {
+          ...values.action,
+          values: {
+            ...values.action.values,
+            href: value.url
+          }
+        }
+      };
       return newVal;
     } else {
       return values;
