@@ -20,8 +20,8 @@ const vehicleItemsTemplate = _.template(`
   <div class="vehicle-container" style="margin:auto;width:<%= containerWidth %>" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>">
     <a style="text-decoration: none;" class="button no-underline no-border-radius" href="<%= action.url %>" target="<%= action.target %>">
         <div style="display: grid;height: fit-content;border: 2px solid #E9E9E9;border-radius: 10px;overflow: hidden;background: <%= backgroundColor %>;text-align: center;" class="vehicle-item" id="vehicle-item" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>" >
-          <div style="position: relative;height: 0;width: 100%;padding-bottom:100%;">
-              <img src="<%= item["image[0].url"] %>" style="position: absolute;top: 0;left: 0;width: 100%;height: 100%;object-fit: cover;" />
+          <div style="position: relative;height: 0;width: 100%;padding-bottom:75%;">
+              <img src="<%= item["image[0].url"] %>" style="position: absolute;top: 0;left: 0;width: 100%;height: 100%;object-fit: contain;" />
           </div>
           <% if (showTitle) { %>
               <p style="padding: 0 10px;font-weight: 500;font-size: 1.35em;line-height: 29px;color: <%= textColor %>;margin-top: 8px;margin-bottom: 0;" class="vehicle-item-ymm"><%= item.year %> <%= item.make %> <%= item.model %></p>
