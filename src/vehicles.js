@@ -10,7 +10,10 @@ const vehicleToolTemplate = function(values, isViewer = false) {
     showTrim: values.showTrim,
     action: values.action,
     containerWidth: values.containerWidth + '%'
-  })}` : `<img alt="" src="https://firebasestorage.googleapis.com/v0/b/elevaetbackend.appspot.com/o/EmailTemplateHeros%2Femstudio_inventory_placeholder.png?alt=media&token=6b112ed6-210c-4fb1-84a0-701db6fd3385&_gl=1*1dyh6bb*_ga*NDc3MzQzNDAwLjE2ODQyODc3Nzc.*_ga_CW55HF8NVT*MTY4NTQ2NzM5MS4yLjEuMTY4NTQ2NzYzMC4wLjAuMA.." style="text-align: center;width: 100%;object-fit: contain;"/>`}
+  })}` : `
+      <img alt="" src="https://firebasestorage.googleapis.com/v0/b/elevaetbackend.appspot.com/o/EmailTemplateHeros%2Femstudio_inventory_placeholder.png?alt=media&token=6b112ed6-210c-4fb1-84a0-701db6fd3385&_gl=1*1dyh6bb*_ga*NDc3MzQzNDAwLjE2ODQyODc3Nzc.*_ga_CW55HF8NVT*MTY4NTQ2NzM5MS4yLjEuMTY4NTQ2NzYzMC4wLjAuMA.." style="text-align: center;width: 100%;object-fit: contain;"/>
+      ${values._vehicle_sold ? `<p style="text-align:center;color:#c0392b;font-size:13px;margin:8px 10px 0;">This vehicle is no longer available and has been removed from the template.</p>` : ''}
+    `}
 </div>
   `
 }
@@ -64,7 +67,9 @@ const vehicleModalTemplate = function (data) {
 
 
 const vehicleEditorTemplate = function(value, updateValue,data) {
-    return `<div class="text-center">
+    return `
+${value._vehicle_sold_message ? `<div style="background:#fdecea;border:1px solid #f5c6cb;border-radius:4px;padding:8px 12px;margin-bottom:8px;color:#c0392b;font-size:12px;">⚠️ ${value._vehicle_sold_message}</div>` : ''}
+<div class="text-center">
 ${data.vehicles.length > 0 ? `<button id="chooseVehicleButton" class="button btn-primary btn btn-lg">Choose Vehicle</button>` : `<p>No vehicles available</p>`}
 </div>
 ${vehicleModalTemplate({
