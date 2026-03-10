@@ -68,7 +68,7 @@ const vehicleModalTemplate = function (data) {
 
 const vehicleEditorTemplate = function(value, updateValue,data) {
     return `
-${value._vehicle_sold_message ? `<div style="background:#fdecea;border:1px solid #f5c6cb;border-radius:4px;padding:8px 12px;margin-bottom:8px;color:#c0392b;font-size:12px;">⚠️ ${value._vehicle_sold_message}</div>` : ''}
+${value._vehicle_sold ? `<div style="background:#fdecea;border:1px solid #f5c6cb;border-radius:4px;padding:8px 12px;margin-bottom:8px;color:#c0392b;font-size:12px;">This vehicle is no longer available and has been removed from the template.</div>` : ''}
 <div class="text-center">
 ${data.vehicles.length > 0 ? `<button id="chooseVehicleButton" class="button btn-primary btn btn-lg">Choose Vehicle</button>` : `<p>No vehicles available</p>`}
 </div>
