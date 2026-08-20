@@ -18,7 +18,11 @@ const vehicleToolTemplate = function(values, isViewer = false) {
     imageWidth: imageWidth,
     containerWidth: values.containerWidth + '%'
   })}` : `
-      <img alt="" border="0" width="${imageWidth}" src="https://firebasestorage.googleapis.com/v0/b/elevaetbackend.appspot.com/o/EmailTemplateHeros%2Femstudio_inventory_placeholder.png?alt=media&token=6b112ed6-210c-4fb1-84a0-701db6fd3385&_gl=1*1dyh6bb*_ga*NDc3MzQzNDAwLjE2ODQyODc3Nzc.*_ga_CW55HF8NVT*MTY4NTQ2NzM5MS4yLjEuMTY4NTQ2NzYzMC4wLjAuMA.." style="display:block;margin:0 auto;width:100%;max-width:${imageWidth}px;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;"/>
+      <!-- Editor-only affordance: shown when no vehicle is picked, so it fills the
+           block rather than being capped at imageWidth. Deliberately carries no
+           width attribute -- we cannot know the body's contentWidth here, and a
+           wrong pixel value would be worse than none. -->
+      <img alt="" border="0" src="https://firebasestorage.googleapis.com/v0/b/elevaetbackend.appspot.com/o/EmailTemplateHeros%2Femstudio_inventory_placeholder.png?alt=media&token=6b112ed6-210c-4fb1-84a0-701db6fd3385&_gl=1*1dyh6bb*_ga*NDc3MzQzNDAwLjE2ODQyODc3Nzc.*_ga_CW55HF8NVT*MTY4NTQ2NzM5MS4yLjEuMTY4NTQ2NzYzMC4wLjAuMA.." style="display:block;margin:0 auto;width:100%;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;"/>
       ${values._vehicle_sold ? `<p style="text-align:center;color:#c0392b;font-size:13px;margin:8px 10px 0;">This vehicle is no longer available and has been removed from the template.</p>` : ''}
     `}
   `
