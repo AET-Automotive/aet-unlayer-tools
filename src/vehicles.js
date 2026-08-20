@@ -1,41 +1,71 @@
 
+// Fallback for designs saved before the imageWidth option existed. 230 rather
+// than the 250px column width so the card's 2px border fits inside the column;
+// this is the value verified to render correctly in a real test send.
+const DEFAULT_IMAGE_WIDTH = 230;
+
 const vehicleToolTemplate = function(values, isViewer = false) {
+  const imageWidth = parseInt(values.imageWidth, 10) || DEFAULT_IMAGE_WIDTH;
   return `
     ${!!values.vehicle.make ? `${vehicleItemsTemplate({
-    vehicles: [values.vehicle], 
+    vehicles: [values.vehicle],
     backgroundColor: values.backgroundColor,
     textColor: values.textColor,
     showTitle: values.showTitle,
     showPrice: values.showPrice,
     showTrim: values.showTrim,
     action: values.action,
+    imageWidth: imageWidth,
     containerWidth: values.containerWidth + '%'
   })}` : `
-      <img alt="" src="https://firebasestorage.googleapis.com/v0/b/elevaetbackend.appspot.com/o/EmailTemplateHeros%2Femstudio_inventory_placeholder.png?alt=media&token=6b112ed6-210c-4fb1-84a0-701db6fd3385&_gl=1*1dyh6bb*_ga*NDc3MzQzNDAwLjE2ODQyODc3Nzc.*_ga_CW55HF8NVT*MTY4NTQ2NzM5MS4yLjEuMTY4NTQ2NzYzMC4wLjAuMA.." style="text-align: center;width: 100%;object-fit: contain;"/>
+      <!-- Editor-only affordance: shown when no vehicle is picked, so it fills the
+           block rather than being capped at imageWidth. Deliberately carries no
+           width attribute -- we cannot know the body's contentWidth here, and a
+           wrong pixel value would be worse than none. -->
+      <img alt="" border="0" src="https://firebasestorage.googleapis.com/v0/b/elevaetbackend.appspot.com/o/EmailTemplateHeros%2Femstudio_inventory_placeholder.png?alt=media&token=6b112ed6-210c-4fb1-84a0-701db6fd3385&_gl=1*1dyh6bb*_ga*NDc3MzQzNDAwLjE2ODQyODc3Nzc.*_ga_CW55HF8NVT*MTY4NTQ2NzM5MS4yLjEuMTY4NTQ2NzYzMC4wLjAuMA.." style="display:block;margin:0 auto;width:100%;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;"/>
       ${values._vehicle_sold ? `<p style="text-align:center;color:#c0392b;font-size:13px;margin:8px 10px 0;">This vehicle is no longer available and has been removed from the template.</p>` : ''}
     `}
-</div>
   `
 }
 
+// Email-safe markup: table layout with an explicit pixel `width` attribute on
+// the image. Percentage-padding aspect boxes, position:absolute, object-fit and
+// max-width are all ignored by the Word engine (classic Outlook) and the
+// absolute positioning is stripped by new Outlook, which collapsed the image
+// to zero height. An author-supplied `width` attribute also stops downstream
+// send pipelines from computing their own (they were stamping width="1440").
 const vehicleItemsTemplate = _.template(`
 <% _.forEach(vehicles, function(item) { %>
-  <div class="vehicle-container" style="margin:auto;width:<%= containerWidth %>" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>">
+  <div class="vehicle-container" style="margin:auto;" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>">
     <a style="text-decoration: none;" class="button no-underline no-border-radius" href="<%= action.url %>" target="<%= action.target %>">
-        <div style="display: grid;height: fit-content;border: 2px solid #E9E9E9;border-radius: 10px;overflow: hidden;background: <%= backgroundColor %>;text-align: center;" class="vehicle-item" id="vehicle-item" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>" >
-          <div style="position: relative;height: 0;width: 100%;padding-bottom:75%;">
-              <img src="<%= item["image[0].url"] %>" style="position: absolute;top: 0;left: 0;width: 100%;height: 100%;object-fit: contain;" />
-          </div>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="<%= containerWidth %>" style="border-collapse:separate;border-spacing:0;border:2px solid #E9E9E9;border-radius:10px;overflow:hidden;background:<%= backgroundColor %>;" class="vehicle-item" id="vehicle-item" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>" >
+          <tr>
+            <td align="center" style="padding:0;">
+              <img src="<%= item["image[0].url"] %>" alt="<%= item.year %> <%= item.make %> <%= item.model %>" border="0" width="<%= imageWidth %>" style="display:block;width:100%;max-width:<%= imageWidth %>px;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
+            </td>
+          </tr>
           <% if (showTitle) { %>
-              <p style="padding: 0 10px;font-weight: 500;font-size: 1.35em;line-height: 29px;color: <%= textColor %>;margin-top: 8px;margin-bottom: 0;" class="vehicle-item-ymm"><%= item.year %> <%= item.make %> <%= item.model %></p>
+          <tr>
+            <td align="center" style="padding:8px 10px 0;">
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:500;font-size:22px;line-height:29px;color:<%= textColor %>;" class="vehicle-item-ymm"><%= item.year %> <%= item.make %> <%= item.model %></p>
+            </td>
+          </tr>
           <% } %>
           <% if (showTrim) { %>
-              <p style="padding: 0 5px;font-weight: 400;font-size: 1.1em;line-height: 21px;color: <%= textColor %>;margin-top: 2px;margin-bottom: 0;" class="vehicle-item-trim"><%= item.trim %></p>
+          <tr>
+            <td align="center" style="padding:2px 5px 0;">
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:400;font-size:18px;line-height:21px;color:<%= textColor %>;" class="vehicle-item-trim"><%= item.trim %></p>
+            </td>
+          </tr>
           <% } %>
           <% if (showPrice) { %>
-              <p style="font-weight: 700;font-size: 1.2em;line-height: 23px;color: black;margin-top: 2px;margin-bottom: 10px;color: <%= textColor %>" class="vehicle-item-price"><%= numeral(item.price).format("$0,0") %></p>
+          <tr>
+            <td align="center" style="padding:2px 5px 10px;">
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:19px;line-height:23px;color:<%= textColor %>;" class="vehicle-item-price"><%= numeral(item.price).format("$0,0") %></p>
+            </td>
+          </tr>
           <% } %>
-        </div>
+        </table>
     </a>
   </div>
 <% }); %>
@@ -82,6 +112,7 @@ ${vehicleModalTemplate({
       showPrice: true,
       showTrim: true,
       containerWidth: "100%",
+      imageWidth: DEFAULT_IMAGE_WIDTH,
       action: {
         url: 'javascript:void(0);',
         target: ""
@@ -99,6 +130,26 @@ unlayer.registerPropertyEditor({
     mount(node, value, updateValue, data) {
       $('#percentage_range').on('change',function(e) {
         updateValue(e.target.value);
+      })
+    }
+  })
+})
+
+
+// Pixel width for the vehicle image. Email clients need an explicit `width`
+// attribute in pixels -- a percentage is not enough, and without one the send
+// pipeline computes its own from a desktop viewport.
+unlayer.registerPropertyEditor({
+  name: 'pixel_widget',
+  layout: 'bottom',
+  Widget: unlayer.createWidget({
+    render: function(value, updateValue, data) {
+      return (`<p class="blockbuilder-widget-label">Image Width (px)</p><input style="width: 100%;" type="number" class="form-control" min="40" max="800" step="10" value="${parseInt(value, 10) || DEFAULT_IMAGE_WIDTH}" id="pixel_input">`)
+    },
+    mount(node, value, updateValue, data) {
+      $('#pixel_input').on('change', function(e) {
+        const px = parseInt(e.target.value, 10);
+        updateValue(isNaN(px) ? DEFAULT_IMAGE_WIDTH : Math.min(800, Math.max(40, px)));
       })
     }
   })
@@ -200,6 +251,11 @@ unlayer.registerTool({
           label: "Container Width",
           defaultValue: 100,
           widget: 'percentage_widget'
+        },
+        imageWidth: {
+          label: "Image Width",
+          defaultValue: DEFAULT_IMAGE_WIDTH,
+          widget: 'pixel_widget'
         },
         backgroundColor: {
           label: 'Background Color',
