@@ -1,6 +1,8 @@
 
-// Fallback for designs saved before the imageWidth option existed.
-const DEFAULT_IMAGE_WIDTH = 250;
+// Fallback for designs saved before the imageWidth option existed. 230 rather
+// than the 250px column width so the card's 2px border fits inside the column;
+// this is the value verified to render correctly in a real test send.
+const DEFAULT_IMAGE_WIDTH = 230;
 
 const vehicleToolTemplate = function(values, isViewer = false) {
   const imageWidth = parseInt(values.imageWidth, 10) || DEFAULT_IMAGE_WIDTH;
