@@ -4,17 +4,98 @@
 // this is the value verified to render correctly in a real test send.
 const DEFAULT_IMAGE_WIDTH = 230;
 
+function parsePriceAmount(raw) {
+  if (raw == null || raw === '') {
+    return null;
+  }
+  const match = String(raw).match(/-?\d+(?:\.\d+)?/);
+  if (!match) {
+    return null;
+  }
+  const amount = Number(match[0]);
+  if (!Number.isFinite(amount) || amount === 0) {
+    return null;
+  }
+  return amount;
+}
+
+function formatPriceAmount(amount) {
+  return numeral(amount).format('$0,0');
+}
+
+function buildPriceLines(item, values) {
+  const seen = {};
+  const lines = [];
+  const fields = [
+    { enabled: values.showMsrp, key: 'msrp', label: 'MSRP' },
+    { enabled: values.showPrice, key: 'price', label: 'Price' },
+    { enabled: values.showSalePrice, key: 'sale_price', label: 'Sale Price' }
+  ];
+
+  fields.forEach(function(field) {
+    if (!field.enabled) {
+      return;
+    }
+    const amount = parsePriceAmount(item[field.key]);
+    if (amount == null || seen[amount]) {
+      return;
+    }
+    seen[amount] = true;
+    lines.push({
+      label: field.label,
+      formatted: formatPriceAmount(amount)
+    });
+  });
+
+  return lines;
+}
+
+function buildPickerPriceLines(item) {
+  const amount = parsePriceAmount(item.price)
+    || parsePriceAmount(item.sale_price)
+    || parsePriceAmount(item.msrp);
+  if (amount == null) {
+    return [];
+  }
+  return [{ label: '', formatted: formatPriceAmount(amount) }];
+}
+
+function applyEmailUtms(url) {
+  if (!url || typeof url !== 'string' || url.indexOf('javascript:') === 0 || url === '#') {
+    return url;
+  }
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set('utm_source', 'email');
+    parsed.searchParams.set('utm_medium', 'email');
+    const campaign = parsed.searchParams.get('utm_campaign');
+    if (!campaign || campaign === 'aia' || campaign === 'aia_') {
+      parsed.searchParams.set('utm_campaign', 'vehicle');
+    } else if (campaign.indexOf('aia_') === 0) {
+      parsed.searchParams.set('utm_campaign', 'vehicle_' + campaign.slice(4));
+    }
+    return parsed.toString();
+  } catch (e) {
+    return url;
+  }
+}
+
+function actionWithEmailUtms(action) {
+  const url = action && (action.url || (action.values && action.values.href));
+  return Object.assign({}, action, { url: applyEmailUtms(url) });
+}
+
 const vehicleToolTemplate = function(values, isViewer = false) {
   const imageWidth = parseInt(values.imageWidth, 10) || DEFAULT_IMAGE_WIDTH;
+  const vehicle = values.vehicle || {};
   return `
-    ${!!values.vehicle.make ? `${vehicleItemsTemplate({
-    vehicles: [values.vehicle],
+    ${!!vehicle.make ? `${vehicleItemsTemplate({
+    vehicles: [Object.assign({}, vehicle, { priceLines: buildPriceLines(vehicle, values) })],
     backgroundColor: values.backgroundColor,
     textColor: values.textColor,
     showTitle: values.showTitle,
-    showPrice: values.showPrice,
     showTrim: values.showTrim,
-    action: values.action,
+    action: actionWithEmailUtms(values.action),
     imageWidth: imageWidth,
     containerWidth: values.containerWidth + '%'
   })}` : `
@@ -58,12 +139,14 @@ const vehicleItemsTemplate = _.template(`
             </td>
           </tr>
           <% } %>
-          <% if (showPrice) { %>
+          <% if (item.priceLines && item.priceLines.length) { %>
+          <% item.priceLines.forEach(function(line, idx) { %>
           <tr>
-            <td align="center" style="padding:2px 5px 10px;">
-              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:19px;line-height:23px;color:<%= textColor %>;" class="vehicle-item-price"><%= numeral(item.price).format("$0,0") %></p>
+            <td align="center" style="padding:2px 5px <%= idx === item.priceLines.length - 1 ? '10px' : '0' %>;">
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:19px;line-height:23px;color:<%= textColor %>;" class="vehicle-item-price"><% if (line.label) { %><%= line.label %> <% } %><%= line.formatted %></p>
             </td>
           </tr>
+          <% }); %>
           <% } %>
         </table>
     </a>
@@ -105,11 +188,12 @@ ${value._vehicle_sold ? `<div style="background:#fdecea;border:1px solid #f5c6cb
 ${data.vehicles.length > 0 ? `<button id="chooseVehicleButton" class="button btn-primary btn btn-lg">Choose Vehicle</button>` : `<p>No vehicles available</p>`}
 </div>
 ${vehicleModalTemplate({
-      vehicles : data.vehicles, 
+      vehicles : data.vehicles.map(function(vehicle) {
+        return Object.assign({}, vehicle, { priceLines: buildPickerPriceLines(vehicle) });
+      }),
       backgroundColor: "white", 
       textColor: "black",
       showTitle: true,
-      showPrice: true,
       showTrim: true,
       containerWidth: "100%",
       imageWidth: DEFAULT_IMAGE_WIDTH,
@@ -267,9 +351,19 @@ unlayer.registerTool({
           defaultValue: '#000000',
           widget: 'color_picker',
         },
+        showMsrp: {
+          label: 'Show MSRP',
+          defaultValue: false,
+          widget: 'toggle',
+        },
         showPrice: {
           label: 'Show Price',
           defaultValue: true,
+          widget: 'toggle',
+        },
+        showSalePrice: {
+          label: 'Show Sale Price',
+          defaultValue: false,
           widget: 'toggle',
         },
         showTrim: {
@@ -305,7 +399,7 @@ unlayer.registerTool({
           ...values.action,
           values: {
             ...values.action.values,
-            href: value.url
+            href: applyEmailUtms(value.url)
           }
         }
       };
