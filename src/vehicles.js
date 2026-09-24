@@ -353,12 +353,12 @@ function registerToggleWithColorPropertyEditor(name, label, fallbackColor) {
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;">
             <span style="font-size:14px;line-height:20px;color:#4a4a4a;">${label}</span>
             <div style="display:flex;align-items:center;gap:12px;">
-              <label style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:54px;height:30px;cursor:pointer;margin:0;">
+              <label style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:48px;height:26px;cursor:pointer;margin:0;">
                 <input type="checkbox" id="${name}_toggle" ${isChecked} style="position:absolute;opacity:0;width:0;height:0;" />
                 <span id="${name}_track" style="position:absolute;inset:0;border-radius:999px;background:#d9d9d9;border:1px solid #cdcdcd;transition:all .15s ease;"></span>
-                <span id="${name}_check" style="position:absolute;left:9px;top:7px;font-size:13px;line-height:13px;font-weight:700;color:#ffffff;opacity:0;transition:opacity .15s ease;">✓</span>
-                <span id="${name}_cross" style="position:absolute;left:10px;top:6px;font-size:13px;line-height:13px;font-weight:700;color:#7b7b7b;opacity:1;transition:opacity .15s ease;">×</span>
-                <span id="${name}_thumb" style="position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#ffffff;box-shadow:0 1px 2px rgba(0,0,0,0.2);transition:transform .15s ease;"></span>
+                <span id="${name}_check" style="position:absolute;left:8px;top:6px;font-size:12px;line-height:12px;font-weight:700;color:#ffffff;opacity:0;transition:opacity .15s ease;">✓</span>
+                <span id="${name}_cross" style="position:absolute;left:8px;top:5px;font-size:12px;line-height:12px;font-weight:700;color:#7b7b7b;opacity:1;transition:opacity .15s ease;">×</span>
+                <span id="${name}_thumb" style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#ffffff;box-shadow:0 1px 2px rgba(0,0,0,0.2);transition:transform .15s ease;"></span>
               </label>
               <input type="color" id="${name}_color" value="${color}" style="width:28px;height:28px;border:none;padding:0;background:none;cursor:pointer;" />
             </div>
@@ -387,7 +387,7 @@ function registerToggleWithColorPropertyEditor(name, label, fallbackColor) {
           const isChecked = !!toggleInput.checked;
           toggleTrack.style.backgroundColor = isChecked ? '#262626' : '#d9d9d9';
           toggleTrack.style.borderColor = isChecked ? '#262626' : '#cdcdcd';
-          toggleThumb.style.transform = isChecked ? 'translateX(24px)' : 'translateX(0)';
+          toggleThumb.style.transform = isChecked ? 'translateX(22px)' : 'translateX(0)';
           toggleCheck.style.opacity = isChecked ? '1' : '0';
           toggleCross.style.opacity = isChecked ? '0' : '1';
         };
