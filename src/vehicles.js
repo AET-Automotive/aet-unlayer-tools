@@ -27,9 +27,9 @@ function buildPriceLines(item, values) {
   const seen = {};
   const lines = [];
   const fields = [
-    { enabled: values.showMsrp, key: 'msrp', label: 'MSRP' },
-    { enabled: values.showPrice, key: 'price', label: 'Price' },
-    { enabled: values.showSalePrice, key: 'sale_price', label: 'Sale Price' }
+    { enabled: values.showMsrp, key: 'msrp', label: 'MSRP', colorKey: 'msrpColor', fallbackColor: '#808080' },
+    { enabled: values.showPrice, key: 'price', label: 'Price', colorKey: 'priceColor', fallbackColor: '#000000' },
+    { enabled: values.showSalePrice, key: 'sale_price', label: 'Sale Price', colorKey: 'salePriceColor', fallbackColor: '#2E7D32' }
   ];
 
   fields.forEach(function(field) {
@@ -43,7 +43,8 @@ function buildPriceLines(item, values) {
     seen[amount] = true;
     lines.push({
       label: field.label,
-      formatted: formatPriceAmount(amount)
+      formatted: formatPriceAmount(amount),
+      color: values[field.colorKey] || field.fallbackColor
     });
   });
 
@@ -143,7 +144,7 @@ const vehicleItemsTemplate = _.template(`
           <% item.priceLines.forEach(function(line, idx) { %>
           <tr>
             <td align="center" style="padding:2px 5px <%= idx === item.priceLines.length - 1 ? '10px' : '0' %>;">
-              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:19px;line-height:23px;color:<%= textColor %>;" class="vehicle-item-price"><% if (line.label) { %><%= line.label %> <% } %><%= line.formatted %></p>
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:19px;line-height:23px;color:<%= line.color %>;" class="vehicle-item-price"><% if (line.label) { %><%= line.label %> <% } %><%= line.formatted %></p>
             </td>
           </tr>
           <% }); %>
@@ -349,6 +350,21 @@ unlayer.registerTool({
         textColor: {
           label: 'Text Color',
           defaultValue: '#000000',
+          widget: 'color_picker',
+        },
+        msrpColor: {
+          label: 'MSRP Color',
+          defaultValue: '#808080',
+          widget: 'color_picker',
+        },
+        priceColor: {
+          label: 'Price Color',
+          defaultValue: '#000000',
+          widget: 'color_picker',
+        },
+        salePriceColor: {
+          label: 'Sale Price Color',
+          defaultValue: '#2E7D32',
           widget: 'color_picker',
         },
         showMsrp: {
