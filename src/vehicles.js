@@ -337,7 +337,7 @@ unlayer.registerPropertyEditor({
   })
 })
 
-function registerToggleWithColorPropertyEditor(name, fallbackColor) {
+function registerToggleWithColorPropertyEditor(name, label, fallbackColor) {
   unlayer.registerPropertyEditor({
     name: name,
     layout: 'bottom',
@@ -350,11 +350,14 @@ function registerToggleWithColorPropertyEditor(name, fallbackColor) {
         const color = parsedValue.color || fallbackColor;
 
         return (`
-          <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;width:100%;">
-            <label style="display:inline-flex;align-items:center;cursor:pointer;margin:0;">
-              <input type="checkbox" id="${name}_toggle" ${isChecked} style="margin:0;" />
-            </label>
-            <input type="color" id="${name}_color" value="${color}" style="width:24px;height:24px;border:none;padding:0;background:none;cursor:pointer;" />
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;">
+            <span style="font-size:14px;line-height:20px;color:#4a4a4a;">${label}</span>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <label style="display:inline-flex;align-items:center;cursor:pointer;margin:0;">
+                <input type="checkbox" id="${name}_toggle" ${isChecked} style="margin:0;" />
+              </label>
+              <input type="color" id="${name}_color" value="${color}" style="width:24px;height:24px;border:none;padding:0;background:none;cursor:pointer;" />
+            </div>
           </div>
         `);
       },
@@ -386,9 +389,9 @@ function registerToggleWithColorPropertyEditor(name, fallbackColor) {
   });
 }
 
-registerToggleWithColorPropertyEditor('show_msrp_with_color_widget', '#808080');
-registerToggleWithColorPropertyEditor('show_price_with_color_widget', '#000000');
-registerToggleWithColorPropertyEditor('show_sale_price_with_color_widget', '#2E7D32');
+registerToggleWithColorPropertyEditor('show_msrp_with_color_widget', 'Show MSRP', '#808080');
+registerToggleWithColorPropertyEditor('show_price_with_color_widget', 'Show Price', '#000000');
+registerToggleWithColorPropertyEditor('show_sale_price_with_color_widget', 'Show Sale Price', '#2E7D32');
 
 unlayer.registerTool({
   name: "aet_vehicle",
@@ -426,7 +429,7 @@ unlayer.registerTool({
           widget: 'color_picker',
         },
         showMsrp: {
-          label: 'Show MSRP',
+          label: '',
           defaultValue: {
             enabled: false,
             color: '#808080'
@@ -434,7 +437,7 @@ unlayer.registerTool({
           widget: 'show_msrp_with_color_widget',
         },
         showPrice: {
-          label: 'Show Price',
+          label: '',
           defaultValue: {
             enabled: true,
             color: '#000000'
@@ -442,7 +445,7 @@ unlayer.registerTool({
           widget: 'show_price_with_color_widget',
         },
         showSalePrice: {
-          label: 'Show Sale Price',
+          label: '',
           defaultValue: {
             enabled: false,
             color: '#2E7D32'
