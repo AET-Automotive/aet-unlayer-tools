@@ -23,13 +23,33 @@ function formatPriceAmount(amount) {
   return numeral(amount).format('$0,0');
 }
 
+function getPriceDisplayConfig(values, toggleKey, colorKey, fallbackColor) {
+  const toggleValue = values[toggleKey];
+  const legacyColor = values[colorKey];
+
+  if (toggleValue && typeof toggleValue === 'object') {
+    return {
+      enabled: !!toggleValue.enabled,
+      color: toggleValue.color || legacyColor || fallbackColor
+    };
+  }
+
+  return {
+    enabled: !!toggleValue,
+    color: legacyColor || fallbackColor
+  };
+}
+
 function buildPriceLines(item, values) {
   const seen = {};
   const lines = [];
+  const msrpConfig = getPriceDisplayConfig(values, 'showMsrp', 'msrpColor', '#808080');
+  const priceConfig = getPriceDisplayConfig(values, 'showPrice', 'priceColor', '#000000');
+  const salePriceConfig = getPriceDisplayConfig(values, 'showSalePrice', 'salePriceColor', '#2E7D32');
   const fields = [
-    { enabled: values.showMsrp, key: 'msrp', label: 'MSRP', colorKey: 'msrpColor', fallbackColor: '#808080' },
-    { enabled: values.showPrice, key: 'price', label: 'Price', colorKey: 'priceColor', fallbackColor: '#000000' },
-    { enabled: values.showSalePrice, key: 'sale_price', label: 'Sale Price', colorKey: 'salePriceColor', fallbackColor: '#2E7D32' }
+    { enabled: msrpConfig.enabled, key: 'msrp', label: 'MSRP', color: msrpConfig.color },
+    { enabled: priceConfig.enabled, key: 'price', label: 'Price', color: priceConfig.color },
+    { enabled: salePriceConfig.enabled, key: 'sale_price', label: 'Sale Price', color: salePriceConfig.color }
   ];
 
   fields.forEach(function(field) {
@@ -44,7 +64,7 @@ function buildPriceLines(item, values) {
     lines.push({
       label: field.label,
       formatted: formatPriceAmount(amount),
-      color: values[field.colorKey] || field.fallbackColor
+      color: field.color
     });
   });
 
@@ -317,6 +337,59 @@ unlayer.registerPropertyEditor({
   })
 })
 
+function registerToggleWithColorPropertyEditor(name, fallbackColor) {
+  unlayer.registerPropertyEditor({
+    name: name,
+    layout: 'bottom',
+    Widget: unlayer.createWidget({
+      render: function(value) {
+        const parsedValue = value && typeof value === 'object'
+          ? value
+          : { enabled: !!value, color: fallbackColor };
+        const isChecked = parsedValue.enabled ? 'checked' : '';
+        const color = parsedValue.color || fallbackColor;
+
+        return (`
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;width:100%;">
+            <label style="display:inline-flex;align-items:center;cursor:pointer;margin:0;">
+              <input type="checkbox" id="${name}_toggle" ${isChecked} style="margin:0;" />
+            </label>
+            <input type="color" id="${name}_color" value="${color}" style="width:24px;height:24px;border:none;padding:0;background:none;cursor:pointer;" />
+          </div>
+        `);
+      },
+      mount: function(node, value, updateValue) {
+        const parsedValue = value && typeof value === 'object'
+          ? value
+          : { enabled: !!value, color: fallbackColor };
+        const toggleInput = node.querySelector(`#${name}_toggle`);
+        const colorInput = node.querySelector(`#${name}_color`);
+
+        if (toggleInput) {
+          toggleInput.checked = !!parsedValue.enabled;
+        }
+        if (colorInput) {
+          colorInput.value = parsedValue.color || fallbackColor;
+        }
+
+        const emitValue = function() {
+          updateValue({
+            enabled: !!toggleInput.checked,
+            color: colorInput.value || fallbackColor
+          });
+        };
+
+        toggleInput.addEventListener('change', emitValue);
+        colorInput.addEventListener('change', emitValue);
+      }
+    })
+  });
+}
+
+registerToggleWithColorPropertyEditor('show_msrp_with_color_widget', '#808080');
+registerToggleWithColorPropertyEditor('show_price_with_color_widget', '#000000');
+registerToggleWithColorPropertyEditor('show_sale_price_with_color_widget', '#2E7D32');
+
 unlayer.registerTool({
   name: "aet_vehicle",
   label: "Vehicle",
@@ -352,35 +425,29 @@ unlayer.registerTool({
           defaultValue: '#000000',
           widget: 'color_picker',
         },
-        msrpColor: {
-          label: 'MSRP Color',
-          defaultValue: '#808080',
-          widget: 'color_picker',
-        },
-        priceColor: {
-          label: 'Price Color',
-          defaultValue: '#000000',
-          widget: 'color_picker',
-        },
-        salePriceColor: {
-          label: 'Sale Price Color',
-          defaultValue: '#2E7D32',
-          widget: 'color_picker',
-        },
         showMsrp: {
           label: 'Show MSRP',
-          defaultValue: false,
-          widget: 'toggle',
+          defaultValue: {
+            enabled: false,
+            color: '#808080'
+          },
+          widget: 'show_msrp_with_color_widget',
         },
         showPrice: {
           label: 'Show Price',
-          defaultValue: true,
-          widget: 'toggle',
+          defaultValue: {
+            enabled: true,
+            color: '#000000'
+          },
+          widget: 'show_price_with_color_widget',
         },
         showSalePrice: {
           label: 'Show Sale Price',
-          defaultValue: false,
-          widget: 'toggle',
+          defaultValue: {
+            enabled: false,
+            color: '#2E7D32'
+          },
+          widget: 'show_sale_price_with_color_widget',
         },
         showTrim: {
           label: 'Show Trim',
