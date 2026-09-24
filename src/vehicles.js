@@ -4,17 +4,119 @@
 // this is the value verified to render correctly in a real test send.
 const DEFAULT_IMAGE_WIDTH = 230;
 
+function parsePriceAmount(raw) {
+  if (raw == null || raw === '') {
+    return null;
+  }
+  const match = String(raw).match(/-?\d+(?:\.\d+)?/);
+  if (!match) {
+    return null;
+  }
+  const amount = Number(match[0]);
+  if (!Number.isFinite(amount) || amount === 0) {
+    return null;
+  }
+  return amount;
+}
+
+function formatPriceAmount(amount) {
+  return numeral(amount).format('$0,0');
+}
+
+function getPriceDisplayConfig(values, toggleKey, colorKey, fallbackColor) {
+  const toggleValue = values[toggleKey];
+  const legacyColor = values[colorKey];
+
+  if (toggleValue && typeof toggleValue === 'object') {
+    return {
+      enabled: !!toggleValue.enabled,
+      color: toggleValue.color || legacyColor || fallbackColor
+    };
+  }
+
+  return {
+    enabled: !!toggleValue,
+    color: legacyColor || fallbackColor
+  };
+}
+
+function buildPriceLines(item, values) {
+  const seen = {};
+  const lines = [];
+  const msrpConfig = getPriceDisplayConfig(values, 'showMsrp', 'msrpColor', '#808080');
+  const priceConfig = getPriceDisplayConfig(values, 'showPrice', 'priceColor', '#000000');
+  const salePriceConfig = getPriceDisplayConfig(values, 'showSalePrice', 'salePriceColor', '#2E7D32');
+  const fields = [
+    { enabled: msrpConfig.enabled, key: 'msrp', label: 'MSRP', color: msrpConfig.color },
+    { enabled: priceConfig.enabled, key: 'price', label: 'Price', color: priceConfig.color },
+    { enabled: salePriceConfig.enabled, key: 'sale_price', label: 'Sale Price', color: salePriceConfig.color }
+  ];
+
+  fields.forEach(function(field) {
+    if (!field.enabled) {
+      return;
+    }
+    const amount = parsePriceAmount(item[field.key]);
+    if (amount == null || seen[amount]) {
+      return;
+    }
+    seen[amount] = true;
+    lines.push({
+      label: field.label,
+      formatted: formatPriceAmount(amount),
+      color: field.color
+    });
+  });
+
+  return lines;
+}
+
+function buildPickerPriceLines(item) {
+  const amount = parsePriceAmount(item.price)
+    || parsePriceAmount(item.sale_price)
+    || parsePriceAmount(item.msrp);
+  if (amount == null) {
+    return [];
+  }
+  return [{ label: '', formatted: formatPriceAmount(amount) }];
+}
+
+function applyEmailUtms(url) {
+  if (!url || typeof url !== 'string' || url.indexOf('javascript:') === 0 || url === '#') {
+    return url;
+  }
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set('utm_source', 'email');
+    parsed.searchParams.set('utm_medium', 'email');
+    const campaign = parsed.searchParams.get('utm_campaign');
+    if (!campaign || campaign === 'aia' || campaign === 'aia_') {
+      parsed.searchParams.set('utm_campaign', 'vehicle');
+    } else if (campaign.indexOf('aia_') === 0) {
+      parsed.searchParams.set('utm_campaign', 'vehicle_' + campaign.slice(4));
+    }
+    return parsed.toString();
+  } catch (e) {
+    return url;
+  }
+}
+
+function actionWithEmailUtms(action) {
+  const url = action && (action.url || (action.values && action.values.href));
+  return Object.assign({}, action, { url: applyEmailUtms(url) });
+}
+
 const vehicleToolTemplate = function(values, isViewer = false) {
   const imageWidth = parseInt(values.imageWidth, 10) || DEFAULT_IMAGE_WIDTH;
+  const vehicle = values.vehicle || {};
   return `
-    ${!!values.vehicle.make ? `${vehicleItemsTemplate({
-    vehicles: [values.vehicle],
+    ${!!vehicle.make ? `${vehicleItemsTemplate({
+    vehicles: [Object.assign({}, vehicle, { priceLines: buildPriceLines(vehicle, values) })],
     backgroundColor: values.backgroundColor,
     textColor: values.textColor,
     showTitle: values.showTitle,
-    showPrice: values.showPrice,
     showTrim: values.showTrim,
-    action: values.action,
+    action: actionWithEmailUtms(values.action),
     imageWidth: imageWidth,
     containerWidth: values.containerWidth + '%'
   })}` : `
@@ -58,12 +160,14 @@ const vehicleItemsTemplate = _.template(`
             </td>
           </tr>
           <% } %>
-          <% if (showPrice) { %>
+          <% if (item.priceLines && item.priceLines.length) { %>
+          <% item.priceLines.forEach(function(line, idx) { %>
           <tr>
-            <td align="center" style="padding:2px 5px 10px;">
-              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:19px;line-height:23px;color:<%= textColor %>;" class="vehicle-item-price"><%= numeral(item.price).format("$0,0") %></p>
+            <td align="center" style="padding:2px 5px <%= idx === item.priceLines.length - 1 ? '10px' : '0' %>;">
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:19px;line-height:23px;color:<%= line.color %>;" class="vehicle-item-price"><% if (line.label) { %><%= line.label %> <% } %><%= line.formatted %></p>
             </td>
           </tr>
+          <% }); %>
           <% } %>
         </table>
     </a>
@@ -105,11 +209,12 @@ ${value._vehicle_sold ? `<div style="background:#fdecea;border:1px solid #f5c6cb
 ${data.vehicles.length > 0 ? `<button id="chooseVehicleButton" class="button btn-primary btn btn-lg">Choose Vehicle</button>` : `<p>No vehicles available</p>`}
 </div>
 ${vehicleModalTemplate({
-      vehicles : data.vehicles, 
+      vehicles : data.vehicles.map(function(vehicle) {
+        return Object.assign({}, vehicle, { priceLines: buildPickerPriceLines(vehicle) });
+      }),
       backgroundColor: "white", 
       textColor: "black",
       showTitle: true,
-      showPrice: true,
       showTrim: true,
       containerWidth: "100%",
       imageWidth: DEFAULT_IMAGE_WIDTH,
@@ -232,6 +337,79 @@ unlayer.registerPropertyEditor({
   })
 })
 
+function registerToggleWithColorPropertyEditor(name, label, fallbackColor) {
+  unlayer.registerPropertyEditor({
+    name: name,
+    layout: 'bottom',
+    Widget: unlayer.createWidget({
+      render: function(value) {
+        const parsedValue = value && typeof value === 'object'
+          ? value
+          : { enabled: !!value, color: fallbackColor };
+        const isChecked = parsedValue.enabled ? 'checked' : '';
+        const color = parsedValue.color || fallbackColor;
+
+        return (`
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;">
+            <span style="font-size:14px;line-height:20px;color:#4a4a4a;">${label}</span>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <label style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:24px;cursor:pointer;margin:0;">
+                <input type="checkbox" id="${name}_toggle" ${isChecked} style="position:absolute;opacity:0;width:0;height:0;" />
+                <span id="${name}_track" style="position:absolute;inset:0;border-radius:999px;background:#d9d9d9;border:1px solid #cdcdcd;transition:all .15s ease;"></span>
+                <span id="${name}_check" style="position:absolute;left:7px;top:6px;width:5px;height:9px;border-right:2px solid #ffffff;border-bottom:2px solid #ffffff;transform:rotate(40deg);opacity:0;transition:opacity .15s ease;"></span>
+                <span id="${name}_thumb" style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#ffffff;box-shadow:0 1px 2px rgba(0,0,0,0.2);transition:transform .15s ease;"></span>
+              </label>
+              <input type="color" id="${name}_color" value="${color}" style="width:28px;height:28px;border:none;padding:0;background:none;cursor:pointer;" />
+            </div>
+          </div>
+        `);
+      },
+      mount: function(node, value, updateValue) {
+        const parsedValue = value && typeof value === 'object'
+          ? value
+          : { enabled: !!value, color: fallbackColor };
+        const toggleInput = node.querySelector(`#${name}_toggle`);
+        const toggleTrack = node.querySelector(`#${name}_track`);
+        const toggleThumb = node.querySelector(`#${name}_thumb`);
+        const toggleCheck = node.querySelector(`#${name}_check`);
+        const colorInput = node.querySelector(`#${name}_color`);
+
+        if (toggleInput) {
+          toggleInput.checked = !!parsedValue.enabled;
+        }
+        if (colorInput) {
+          colorInput.value = parsedValue.color || fallbackColor;
+        }
+
+        const syncToggleUi = function() {
+          const isChecked = !!toggleInput.checked;
+          toggleTrack.style.backgroundColor = isChecked ? '#262626' : '#d9d9d9';
+          toggleTrack.style.borderColor = isChecked ? '#262626' : '#cdcdcd';
+          toggleThumb.style.transform = isChecked ? 'translateX(20px)' : 'translateX(0)';
+          toggleCheck.style.opacity = isChecked ? '1' : '0';
+        };
+
+        syncToggleUi();
+
+        const emitValue = function() {
+          syncToggleUi();
+          updateValue({
+            enabled: !!toggleInput.checked,
+            color: colorInput.value || fallbackColor
+          });
+        };
+
+        toggleInput.addEventListener('change', emitValue);
+        colorInput.addEventListener('change', emitValue);
+      }
+    })
+  });
+}
+
+registerToggleWithColorPropertyEditor('show_msrp_with_color_widget', 'Show MSRP', '#808080');
+registerToggleWithColorPropertyEditor('show_price_with_color_widget', 'Show Price', '#000000');
+registerToggleWithColorPropertyEditor('show_sale_price_with_color_widget', 'Show Sale Price', '#2E7D32');
+
 unlayer.registerTool({
   name: "aet_vehicle",
   label: "Vehicle",
@@ -267,10 +445,29 @@ unlayer.registerTool({
           defaultValue: '#000000',
           widget: 'color_picker',
         },
+        showMsrp: {
+          label: '',
+          defaultValue: {
+            enabled: false,
+            color: '#808080'
+          },
+          widget: 'show_msrp_with_color_widget',
+        },
         showPrice: {
-          label: 'Show Price',
-          defaultValue: true,
-          widget: 'toggle',
+          label: '',
+          defaultValue: {
+            enabled: true,
+            color: '#000000'
+          },
+          widget: 'show_price_with_color_widget',
+        },
+        showSalePrice: {
+          label: '',
+          defaultValue: {
+            enabled: false,
+            color: '#2E7D32'
+          },
+          widget: 'show_sale_price_with_color_widget',
         },
         showTrim: {
           label: 'Show Trim',
@@ -305,7 +502,7 @@ unlayer.registerTool({
           ...values.action,
           values: {
             ...values.action.values,
-            href: value.url
+            href: applyEmailUtms(value.url)
           }
         }
       };
