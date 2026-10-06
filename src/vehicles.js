@@ -410,6 +410,115 @@ registerToggleWithColorPropertyEditor('show_msrp_with_color_widget', 'Show MSRP'
 registerToggleWithColorPropertyEditor('show_price_with_color_widget', 'Show Price', '#000000');
 registerToggleWithColorPropertyEditor('show_sale_price_with_color_widget', 'Show Sale Price', '#2E7D32');
 
+const AUTO_REFRESH_CONDITIONS = ['NEW', 'USED', 'CPO'];
+
+function escapeAttr(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
+function normalizeAutoRefresh(value) {
+  const current = value && typeof value === 'object' ? value : {};
+  return {
+    enabled: !!current.enabled,
+    make: current.make || '',
+    model: current.model || '',
+    yearMin: current.yearMin || '',
+    yearMax: current.yearMax || '',
+    conditions: Array.isArray(current.conditions) ? current.conditions : []
+  };
+}
+
+function prefillAutoRefresh(filters, vehicle) {
+  const next = normalizeAutoRefresh(filters);
+  const car = vehicle || {};
+  if (!next.make && car.make) {
+    next.make = String(car.make);
+  }
+  if (!next.model && car.model) {
+    next.model = String(car.model);
+  }
+  if (!next.yearMin && !next.yearMax && car.year) {
+    next.yearMin = String(car.year);
+    next.yearMax = String(car.year);
+  }
+  const condition = car.state_of_vehicle ? String(car.state_of_vehicle).toUpperCase() : '';
+  if (!next.conditions.length && condition) {
+    next.conditions = [condition];
+  }
+  return next;
+}
+
+function readAutoRefresh(node) {
+  const conditions = AUTO_REFRESH_CONDITIONS.filter(function(condition) {
+    const input = node.querySelector('.aet-ar-condition[value="' + condition + '"]');
+    return input && input.checked;
+  });
+  return {
+    enabled: !!node.querySelector('.aet-ar-enabled').checked,
+    make: node.querySelector('.aet-ar-make').value.trim(),
+    model: node.querySelector('.aet-ar-model').value.trim(),
+    yearMin: node.querySelector('.aet-ar-year-min').value.trim(),
+    yearMax: node.querySelector('.aet-ar-year-max').value.trim(),
+    conditions: conditions
+  };
+}
+
+unlayer.registerPropertyEditor({
+  name: 'auto_refresh_widget',
+  layout: 'bottom',
+  Widget: unlayer.createWidget({
+    render: function(value) {
+      const current = normalizeAutoRefresh(value);
+      const filters = current.enabled ? '' : 'display:none;';
+      const conditions = AUTO_REFRESH_CONDITIONS.map(function(condition) {
+        const checked = current.conditions.indexOf(condition) >= 0 ? 'checked' : '';
+        return `<label style="margin-right:10px;font-weight:400;"><input type="checkbox" class="aet-ar-condition" value="${condition}" ${checked}> ${condition}</label>`;
+      }).join('');
+      return `
+        <div class="aet-auto-refresh">
+          <label style="font-weight:600;">
+            <input type="checkbox" class="aet-ar-enabled" ${current.enabled ? 'checked' : ''}>
+            Auto Refresh
+          </label>
+          <div class="aet-ar-filters" style="${filters}margin-top:8px;">
+            <p style="margin:0 0 8px;font-size:12px;color:#555;">When this vehicle is sold, replace it with the first in-stock match. Leave a filter blank to allow any value.</p>
+            <label style="display:block;font-size:12px;margin-bottom:2px;">Make</label>
+            <input type="text" class="form-control aet-ar-make" value="${escapeAttr(current.make)}" style="margin-bottom:8px;">
+            <label style="display:block;font-size:12px;margin-bottom:2px;">Model</label>
+            <input type="text" class="form-control aet-ar-model" value="${escapeAttr(current.model)}" style="margin-bottom:8px;">
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;">
+                <label style="display:block;font-size:12px;margin-bottom:2px;">Year min</label>
+                <input type="number" class="form-control aet-ar-year-min" value="${escapeAttr(current.yearMin)}">
+              </div>
+              <div style="flex:1;">
+                <label style="display:block;font-size:12px;margin-bottom:2px;">Year max</label>
+                <input type="number" class="form-control aet-ar-year-max" value="${escapeAttr(current.yearMax)}">
+              </div>
+            </div>
+            <div style="margin-top:8px;">${conditions}</div>
+          </div>
+        </div>
+      `;
+    },
+    mount: function(node, value, updateValue) {
+      const emit = function() {
+        const filters = node.querySelector('.aet-ar-filters');
+        const enabled = node.querySelector('.aet-ar-enabled').checked;
+        filters.style.display = enabled ? 'block' : 'none';
+        updateValue(readAutoRefresh(node));
+      };
+      node.querySelector('.aet-ar-enabled').addEventListener('change', emit);
+      node.querySelectorAll('.aet-ar-make, .aet-ar-model, .aet-ar-year-min, .aet-ar-year-max, .aet-ar-condition').forEach(function(input) {
+        input.addEventListener('change', emit);
+      });
+    }
+  })
+});
+
 unlayer.registerTool({
   name: "aet_vehicle",
   label: "Vehicle",
@@ -424,6 +533,18 @@ unlayer.registerTool({
           label: 'Vehicle',
           defaultValue: {},
           widget: 'vehicle_widget'
+        },
+        autoRefresh: {
+          label: 'Auto Refresh',
+          defaultValue: {
+            enabled: false,
+            make: '',
+            model: '',
+            yearMin: '',
+            yearMax: '',
+            conditions: []
+          },
+          widget: 'auto_refresh_widget'
         },
         containerWidth: {
           label: "Container Width",
@@ -507,9 +628,18 @@ unlayer.registerTool({
         }
       };
       return newVal;
-    } else {
-      return values;
     }
+    if (name === 'autoRefresh') {
+      const wasEnabled = !!(values.autoRefresh && values.autoRefresh.enabled);
+      const next = value && value.enabled && !wasEnabled
+        ? prefillAutoRefresh(value, values.vehicle)
+        : normalizeAutoRefresh(value);
+      return {
+        ...values,
+        autoRefresh: next
+      };
+    }
+    return values;
   },
   values: {},
   renderer: {
