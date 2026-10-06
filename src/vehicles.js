@@ -481,10 +481,10 @@ unlayer.registerPropertyEditor({
         <div class="aet-auto-refresh">
           <label style="font-weight:600;">
             <input type="checkbox" class="aet-ar-enabled" ${current.enabled ? 'checked' : ''}>
-            Auto Refresh
+            Enable Auto Refresh
           </label>
           <div class="aet-ar-filters" style="${filters}margin-top:8px;">
-            <p style="margin:0 0 8px;font-size:12px;color:#555;">When this vehicle is sold, replace it with the first in-stock match. Leave a filter blank to allow any value.</p>
+            <p style="margin:0 0 8px;font-size:12px;color:#555;">Enable this feature to automatically replace unavailable vehicles with ones that match your filters, such as price, make, or model, when you open this template. You can still choose a different vehicle anytime.</p>
             <label style="display:block;font-size:12px;margin-bottom:2px;">Make</label>
             <input type="text" class="form-control aet-ar-make" value="${escapeAttr(current.make)}" style="margin-bottom:8px;">
             <label style="display:block;font-size:12px;margin-bottom:2px;">Model</label>
@@ -535,7 +535,7 @@ unlayer.registerTool({
           widget: 'vehicle_widget'
         },
         autoRefresh: {
-          label: 'Auto Refresh',
+          label: '',
           defaultValue: {
             enabled: false,
             make: '',
