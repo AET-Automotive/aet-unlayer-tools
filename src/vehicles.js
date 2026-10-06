@@ -451,6 +451,58 @@ function prefillAutoRefresh(filters, vehicle) {
   return next;
 }
 
+function uniqueSorted(values) {
+  const seen = {};
+  const out = [];
+  (values || []).forEach(function(raw) {
+    const text = String(raw || '').trim();
+    const key = text.toLowerCase();
+    if (!text || seen[key]) {
+      return;
+    }
+    seen[key] = true;
+    out.push(text);
+  });
+  out.sort(function(a, b) {
+    return a.localeCompare(b);
+  });
+  return out;
+}
+
+function feedMakes(vehicles) {
+  return uniqueSorted((vehicles || []).map(function(vehicle) {
+    return vehicle.make;
+  }));
+}
+
+function feedModels(vehicles, make) {
+  const wanted = String(make || '').trim().toLowerCase();
+  return uniqueSorted((vehicles || []).filter(function(vehicle) {
+    if (!wanted) {
+      return true;
+    }
+    return String(vehicle.make || '').trim().toLowerCase() === wanted;
+  }).map(function(vehicle) {
+    return vehicle.model;
+  }));
+}
+
+function selectOptions(options, selected, emptyLabel) {
+  const current = String(selected || '').trim();
+  const list = options.slice();
+  if (current && !list.some(function(item) {
+    return item.toLowerCase() === current.toLowerCase();
+  })) {
+    list.unshift(current);
+  }
+  const html = ['<option value="">' + escapeAttr(emptyLabel) + '</option>'];
+  list.forEach(function(item) {
+    const isSelected = item.toLowerCase() === current.toLowerCase() ? ' selected' : '';
+    html.push('<option value="' + escapeAttr(item) + '"' + isSelected + '>' + escapeAttr(item) + '</option>');
+  });
+  return html.join('');
+}
+
 function readAutoRefresh(node) {
   const conditions = AUTO_REFRESH_CONDITIONS.filter(function(condition) {
     const input = node.querySelector('.aet-ar-condition[value="' + condition + '"]');
@@ -470,8 +522,9 @@ unlayer.registerPropertyEditor({
   name: 'auto_refresh_widget',
   layout: 'bottom',
   Widget: unlayer.createWidget({
-    render: function(value) {
+    render: function(value, updateValue, data) {
       const current = normalizeAutoRefresh(value);
+      const vehicles = (data && data.vehicles) || [];
       const filters = current.enabled ? '' : 'display:none;';
       const conditions = AUTO_REFRESH_CONDITIONS.map(function(condition) {
         const checked = current.conditions.indexOf(condition) >= 0 ? 'checked' : '';
@@ -486,9 +539,9 @@ unlayer.registerPropertyEditor({
           <div class="aet-ar-filters" style="${filters}margin-top:8px;">
             <p style="margin:0 0 8px;font-size:12px;color:#555;">Enable this feature to automatically replace unavailable vehicles with ones that match your filters, such as price, make, or model, when you open this template. You can still choose a different vehicle anytime.</p>
             <label style="display:block;font-size:12px;margin-bottom:2px;">Make</label>
-            <input type="text" class="form-control aet-ar-make" value="${escapeAttr(current.make)}" style="margin-bottom:8px;">
+            <select class="form-control aet-ar-make" style="margin-bottom:8px;">${selectOptions(feedMakes(vehicles), current.make, 'Any make')}</select>
             <label style="display:block;font-size:12px;margin-bottom:2px;">Model</label>
-            <input type="text" class="form-control aet-ar-model" value="${escapeAttr(current.model)}" style="margin-bottom:8px;">
+            <select class="form-control aet-ar-model" style="margin-bottom:8px;">${selectOptions(feedModels(vehicles, current.make), current.model, 'Any model')}</select>
             <div style="display:flex;gap:8px;">
               <div style="flex:1;">
                 <label style="display:block;font-size:12px;margin-bottom:2px;">Year min</label>
@@ -504,15 +557,27 @@ unlayer.registerPropertyEditor({
         </div>
       `;
     },
-    mount: function(node, value, updateValue) {
+    mount: function(node, value, updateValue, data) {
+      const vehicles = (data && data.vehicles) || [];
       const emit = function() {
         const filters = node.querySelector('.aet-ar-filters');
         const enabled = node.querySelector('.aet-ar-enabled').checked;
         filters.style.display = enabled ? 'block' : 'none';
         updateValue(readAutoRefresh(node));
       };
+      node.querySelector('.aet-ar-make').addEventListener('change', function() {
+        const make = node.querySelector('.aet-ar-make').value;
+        const allowed = feedModels(vehicles, make);
+        const modelSelect = node.querySelector('.aet-ar-model');
+        const model = modelSelect.value.trim();
+        const nextModel = model && allowed.some(function(item) {
+          return item.toLowerCase() === model.toLowerCase();
+        }) ? model : '';
+        modelSelect.innerHTML = selectOptions(allowed, nextModel, 'Any model');
+        emit();
+      });
       node.querySelector('.aet-ar-enabled').addEventListener('change', emit);
-      node.querySelectorAll('.aet-ar-make, .aet-ar-model, .aet-ar-year-min, .aet-ar-year-max, .aet-ar-condition').forEach(function(input) {
+      node.querySelectorAll('.aet-ar-model, .aet-ar-year-min, .aet-ar-year-max, .aet-ar-condition').forEach(function(input) {
         input.addEventListener('change', emit);
       });
     }
