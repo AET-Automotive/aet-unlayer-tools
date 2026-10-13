@@ -136,27 +136,32 @@ const vehicleToolTemplate = function(values, isViewer = false) {
 // absolute positioning is stripped by new Outlook, which collapsed the image
 // to zero height. An author-supplied `width` attribute also stops downstream
 // send pipelines from computing their own (they were stamping width="1440").
+//
+// Links live inside each cell (around the image and inside each <p>) rather
+// than one <a> wrapping the table: the backend's premailer/lxml pass follows
+// HTML4 nesting rules and closes an <a> before any <table> or <p>, which left
+// an empty link and an unlinked card in delivered emails. Each <a> carries its
+// own color so the inlined `#u_body a` rule doesn't turn the text blue.
 const vehicleItemsTemplate = _.template(`
 <% _.forEach(vehicles, function(item) { %>
   <div class="vehicle-container" style="margin:auto;" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>">
-    <a style="text-decoration: none;" class="button no-underline no-border-radius" href="<%= action.url %>" target="<%= action.target %>">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" width="<%= containerWidth %>" style="border-collapse:separate;border-spacing:0;border:2px solid #E9E9E9;border-radius:10px;overflow:hidden;background:<%= backgroundColor %>;" class="vehicle-item" id="vehicle-item" data-vin='<%= item.vin %>' data-year="<%= item.year %>" data-price="<%= item.price %>" data-image="<%= item["image[0].url"] %>" data-trim="<%= item.trim %>" data-model="<%= item.model %>" data-make="<%= item.make %>" >
           <tr>
             <td align="center" style="padding:0;">
-              <img src="<%= item["image[0].url"] %>" alt="<%= item.year %> <%= item.make %> <%= item.model %>" border="0" width="<%= imageWidth %>" style="display:block;width:100%;max-width:<%= imageWidth %>px;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
+              <a href="<%= action.url %>" target="<%= action.target %>" style="display:block;text-decoration:none;"><img src="<%= item["image[0].url"] %>" alt="<%= item.year %> <%= item.make %> <%= item.model %>" border="0" width="<%= imageWidth %>" style="display:block;width:100%;max-width:<%= imageWidth %>px;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" /></a>
             </td>
           </tr>
           <% if (showTitle) { %>
           <tr>
             <td align="center" style="padding:8px 10px 0;">
-              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:500;font-size:22px;line-height:29px;color:<%= textColor %>;" class="vehicle-item-ymm"><%= item.year %> <%= item.make %> <%= item.model %></p>
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:500;font-size:22px;line-height:29px;color:<%= textColor %>;" class="vehicle-item-ymm"><a href="<%= action.url %>" target="<%= action.target %>" style="display:block;color:<%= textColor %>;text-decoration:none;"><%= item.year %> <%= item.make %> <%= item.model %></a></p>
             </td>
           </tr>
           <% } %>
           <% if (showTrim) { %>
           <tr>
             <td align="center" style="padding:2px 5px 0;">
-              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:400;font-size:18px;line-height:21px;color:<%= textColor %>;" class="vehicle-item-trim"><%= item.trim %></p>
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:400;font-size:18px;line-height:21px;color:<%= textColor %>;" class="vehicle-item-trim"><a href="<%= action.url %>" target="<%= action.target %>" style="display:block;color:<%= textColor %>;text-decoration:none;"><%= item.trim %></a></p>
             </td>
           </tr>
           <% } %>
@@ -164,13 +169,12 @@ const vehicleItemsTemplate = _.template(`
           <% item.priceLines.forEach(function(line, idx) { %>
           <tr>
             <td align="center" style="padding:2px 5px <%= idx === item.priceLines.length - 1 ? '10px' : '0' %>;">
-              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:19px;line-height:23px;color:<%= line.color %>;" class="vehicle-item-price"><% if (line.label) { %><%= line.label %> <% } %><%= line.formatted %></p>
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:19px;line-height:23px;color:<%= line.color %>;" class="vehicle-item-price"><a href="<%= action.url %>" target="<%= action.target %>" style="display:block;color:<%= line.color %>;text-decoration:none;"><% if (line.label) { %><%= line.label %> <% } %><%= line.formatted %></a></p>
             </td>
           </tr>
           <% }); %>
           <% } %>
         </table>
-    </a>
   </div>
 <% }); %>
 `);
