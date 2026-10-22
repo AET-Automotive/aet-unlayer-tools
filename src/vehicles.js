@@ -23,33 +23,36 @@ function formatPriceAmount(amount) {
   return numeral(amount).format('$0,0');
 }
 
-function getPriceDisplayConfig(values, toggleKey, colorKey, fallbackColor) {
+function getPriceDisplayConfig(values, toggleKey, colorKey, fallbackColor, fallbackLabel) {
   const toggleValue = values[toggleKey];
   const legacyColor = values[colorKey];
 
   if (toggleValue && typeof toggleValue === 'object') {
     return {
       enabled: !!toggleValue.enabled,
-      color: toggleValue.color || legacyColor || fallbackColor
+      color: toggleValue.color || legacyColor || fallbackColor,
+      // An empty string is a deliberate "no label"; only missing falls back.
+      label: typeof toggleValue.label === 'string' ? toggleValue.label : fallbackLabel
     };
   }
 
   return {
     enabled: !!toggleValue,
-    color: legacyColor || fallbackColor
+    color: legacyColor || fallbackColor,
+    label: fallbackLabel
   };
 }
 
 function buildPriceLines(item, values) {
   const seen = {};
   const lines = [];
-  const msrpConfig = getPriceDisplayConfig(values, 'showMsrp', 'msrpColor', '#808080');
-  const priceConfig = getPriceDisplayConfig(values, 'showPrice', 'priceColor', '#000000');
-  const salePriceConfig = getPriceDisplayConfig(values, 'showSalePrice', 'salePriceColor', '#2E7D32');
+  const msrpConfig = getPriceDisplayConfig(values, 'showMsrp', 'msrpColor', '#808080', 'MSRP');
+  const priceConfig = getPriceDisplayConfig(values, 'showPrice', 'priceColor', '#000000', 'Price');
+  const salePriceConfig = getPriceDisplayConfig(values, 'showSalePrice', 'salePriceColor', '#2E7D32', 'Sale Price');
   const fields = [
-    { enabled: msrpConfig.enabled, key: 'msrp', label: 'MSRP', color: msrpConfig.color },
-    { enabled: priceConfig.enabled, key: 'price', label: 'Price', color: priceConfig.color },
-    { enabled: salePriceConfig.enabled, key: 'sale_price', label: 'Sale Price', color: salePriceConfig.color }
+    { enabled: msrpConfig.enabled, key: 'msrp', label: msrpConfig.label, color: msrpConfig.color },
+    { enabled: priceConfig.enabled, key: 'price', label: priceConfig.label, color: priceConfig.color },
+    { enabled: salePriceConfig.enabled, key: 'sale_price', label: salePriceConfig.label, color: salePriceConfig.color }
   ];
 
   fields.forEach(function(field) {
@@ -169,7 +172,7 @@ const vehicleItemsTemplate = _.template(`
           <% item.priceLines.forEach(function(line, idx) { %>
           <tr>
             <td align="center" style="padding:2px 5px <%= idx === item.priceLines.length - 1 ? '10px' : '0' %>;">
-              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:19px;line-height:23px;color:<%= line.color %>;" class="vehicle-item-price"><a href="<%= action.url %>" target="<%= action.target %>" style="display:block;color:<%= line.color %>;text-decoration:none;"><% if (line.label) { %><%= line.label %> <% } %><%= line.formatted %></a></p>
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:19px;line-height:23px;color:<%= line.color %>;" class="vehicle-item-price"><a href="<%= action.url %>" target="<%= action.target %>" style="display:block;color:<%= line.color %>;text-decoration:none;"><% if (line.label) { %><%- line.label %> <% } %><%= line.formatted %></a></p>
             </td>
           </tr>
           <% }); %>
@@ -341,7 +344,7 @@ unlayer.registerPropertyEditor({
   })
 })
 
-function registerToggleWithColorPropertyEditor(name, label, fallbackColor) {
+function registerToggleWithColorPropertyEditor(name, label, fallbackColor, fallbackLabel) {
   unlayer.registerPropertyEditor({
     name: name,
     layout: 'bottom',
@@ -352,6 +355,7 @@ function registerToggleWithColorPropertyEditor(name, label, fallbackColor) {
           : { enabled: !!value, color: fallbackColor };
         const isChecked = parsedValue.enabled ? 'checked' : '';
         const color = parsedValue.color || fallbackColor;
+        const priceLabel = typeof parsedValue.label === 'string' ? parsedValue.label : fallbackLabel;
 
         return (`
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;">
@@ -366,6 +370,7 @@ function registerToggleWithColorPropertyEditor(name, label, fallbackColor) {
               <input type="color" id="${name}_color" value="${color}" style="width:28px;height:28px;border:none;padding:0;background:none;cursor:pointer;" />
             </div>
           </div>
+          <input type="text" id="${name}_label" class="form-control" value="${escapeAttr(priceLabel)}" placeholder="No label" aria-label="${label} label" style="margin-top:6px;" />
         `);
       },
       mount: function(node, value, updateValue) {
@@ -377,6 +382,7 @@ function registerToggleWithColorPropertyEditor(name, label, fallbackColor) {
         const toggleThumb = node.querySelector(`#${name}_thumb`);
         const toggleCheck = node.querySelector(`#${name}_check`);
         const colorInput = node.querySelector(`#${name}_color`);
+        const labelInput = node.querySelector(`#${name}_label`);
 
         if (toggleInput) {
           toggleInput.checked = !!parsedValue.enabled;
@@ -399,20 +405,210 @@ function registerToggleWithColorPropertyEditor(name, label, fallbackColor) {
           syncToggleUi();
           updateValue({
             enabled: !!toggleInput.checked,
-            color: colorInput.value || fallbackColor
+            color: colorInput.value || fallbackColor,
+            label: labelInput.value.trim()
           });
         };
 
         toggleInput.addEventListener('change', emitValue);
         colorInput.addEventListener('change', emitValue);
+        labelInput.addEventListener('change', emitValue);
       }
     })
   });
 }
 
-registerToggleWithColorPropertyEditor('show_msrp_with_color_widget', 'Show MSRP', '#808080');
-registerToggleWithColorPropertyEditor('show_price_with_color_widget', 'Show Price', '#000000');
-registerToggleWithColorPropertyEditor('show_sale_price_with_color_widget', 'Show Sale Price', '#2E7D32');
+registerToggleWithColorPropertyEditor('show_msrp_with_color_widget', 'Show MSRP', '#808080', 'MSRP');
+registerToggleWithColorPropertyEditor('show_price_with_color_widget', 'Show Price', '#000000', 'Price');
+registerToggleWithColorPropertyEditor('show_sale_price_with_color_widget', 'Show Sale Price', '#2E7D32', 'Sale Price');
+
+const AUTO_REFRESH_CONDITIONS = ['NEW', 'USED', 'CPO'];
+
+function escapeAttr(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
+function normalizeAutoRefresh(value) {
+  const current = value && typeof value === 'object' ? value : {};
+  return {
+    enabled: !!current.enabled,
+    make: current.make || '',
+    model: current.model || '',
+    yearMin: current.yearMin || '',
+    yearMax: current.yearMax || '',
+    priceMin: current.priceMin || '',
+    priceMax: current.priceMax || '',
+    conditions: Array.isArray(current.conditions) ? current.conditions : []
+  };
+}
+
+function prefillAutoRefresh(filters, vehicle) {
+  const next = normalizeAutoRefresh(filters);
+  const car = vehicle || {};
+  if (!next.make && car.make) {
+    next.make = String(car.make);
+  }
+  if (!next.model && car.model) {
+    next.model = String(car.model);
+  }
+  if (!next.yearMin && !next.yearMax && car.year) {
+    next.yearMin = String(car.year);
+    next.yearMax = String(car.year);
+  }
+  const condition = car.state_of_vehicle ? String(car.state_of_vehicle).toUpperCase() : '';
+  if (!next.conditions.length && condition) {
+    next.conditions = [condition];
+  }
+  return next;
+}
+
+function uniqueSorted(values) {
+  const seen = {};
+  const out = [];
+  (values || []).forEach(function(raw) {
+    const text = String(raw || '').trim();
+    const key = text.toLowerCase();
+    if (!text || seen[key]) {
+      return;
+    }
+    seen[key] = true;
+    out.push(text);
+  });
+  out.sort(function(a, b) {
+    return a.localeCompare(b);
+  });
+  return out;
+}
+
+function feedMakes(vehicles) {
+  return uniqueSorted((vehicles || []).map(function(vehicle) {
+    return vehicle.make;
+  }));
+}
+
+function feedModels(vehicles, make) {
+  const wanted = String(make || '').trim().toLowerCase();
+  return uniqueSorted((vehicles || []).filter(function(vehicle) {
+    if (!wanted) {
+      return true;
+    }
+    return String(vehicle.make || '').trim().toLowerCase() === wanted;
+  }).map(function(vehicle) {
+    return vehicle.model;
+  }));
+}
+
+function selectOptions(options, selected, emptyLabel) {
+  const current = String(selected || '').trim();
+  const list = options.slice();
+  if (current && !list.some(function(item) {
+    return item.toLowerCase() === current.toLowerCase();
+  })) {
+    list.unshift(current);
+  }
+  const html = ['<option value="">' + escapeAttr(emptyLabel) + '</option>'];
+  list.forEach(function(item) {
+    const isSelected = item.toLowerCase() === current.toLowerCase() ? ' selected' : '';
+    html.push('<option value="' + escapeAttr(item) + '"' + isSelected + '>' + escapeAttr(item) + '</option>');
+  });
+  return html.join('');
+}
+
+function readAutoRefresh(node) {
+  const conditions = AUTO_REFRESH_CONDITIONS.filter(function(condition) {
+    const input = node.querySelector('.aet-ar-condition[value="' + condition + '"]');
+    return input && input.checked;
+  });
+  return {
+    enabled: !!node.querySelector('.aet-ar-enabled').checked,
+    make: node.querySelector('.aet-ar-make').value.trim(),
+    model: node.querySelector('.aet-ar-model').value.trim(),
+    yearMin: node.querySelector('.aet-ar-year-min').value.trim(),
+    yearMax: node.querySelector('.aet-ar-year-max').value.trim(),
+    priceMin: node.querySelector('.aet-ar-price-min').value.trim(),
+    priceMax: node.querySelector('.aet-ar-price-max').value.trim(),
+    conditions: conditions
+  };
+}
+
+unlayer.registerPropertyEditor({
+  name: 'auto_refresh_widget',
+  layout: 'bottom',
+  Widget: unlayer.createWidget({
+    render: function(value, updateValue, data) {
+      const current = normalizeAutoRefresh(value);
+      const vehicles = (data && data.vehicles) || [];
+      const filters = current.enabled ? '' : 'display:none;';
+      const conditions = AUTO_REFRESH_CONDITIONS.map(function(condition) {
+        const checked = current.conditions.indexOf(condition) >= 0 ? 'checked' : '';
+        return `<label style="margin-right:10px;font-weight:400;"><input type="checkbox" class="aet-ar-condition" value="${condition}" ${checked}> ${condition}</label>`;
+      }).join('');
+      return `
+        <div class="aet-auto-refresh">
+          <label style="font-weight:600;">
+            <input type="checkbox" class="aet-ar-enabled" ${current.enabled ? 'checked' : ''}>
+            Enable Auto Refresh
+          </label>
+          <div class="aet-ar-filters" style="${filters}margin-top:8px;">
+            <p style="margin:0 0 8px;font-size:12px;color:#555;">Enable this feature to automatically replace unavailable vehicles with ones that match your filters, such as price, make, or model, when you open this template. You can still choose a different vehicle anytime.</p>
+            <label style="display:block;font-size:12px;margin-bottom:2px;">Make</label>
+            <select class="form-control aet-ar-make" style="margin-bottom:8px;">${selectOptions(feedMakes(vehicles), current.make, 'Any make')}</select>
+            <label style="display:block;font-size:12px;margin-bottom:2px;">Model</label>
+            <select class="form-control aet-ar-model" style="margin-bottom:8px;">${selectOptions(feedModels(vehicles, current.make), current.model, 'Any model')}</select>
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;">
+                <label style="display:block;font-size:12px;margin-bottom:2px;">Year min</label>
+                <input type="number" class="form-control aet-ar-year-min" value="${escapeAttr(current.yearMin)}">
+              </div>
+              <div style="flex:1;">
+                <label style="display:block;font-size:12px;margin-bottom:2px;">Year max</label>
+                <input type="number" class="form-control aet-ar-year-max" value="${escapeAttr(current.yearMax)}">
+              </div>
+            </div>
+            <div style="margin-top:8px;">${conditions}</div>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <div style="flex:1;">
+                <label style="display:block;font-size:12px;margin-bottom:2px;">Price min</label>
+                <input type="number" min="0" step="1000" class="form-control aet-ar-price-min" value="${escapeAttr(current.priceMin)}">
+              </div>
+              <div style="flex:1;">
+                <label style="display:block;font-size:12px;margin-bottom:2px;">Price max</label>
+                <input type="number" min="0" step="1000" class="form-control aet-ar-price-max" value="${escapeAttr(current.priceMax)}">
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+    mount: function(node, value, updateValue, data) {
+      const vehicles = (data && data.vehicles) || [];
+      const emit = function() {
+        const filters = node.querySelector('.aet-ar-filters');
+        const enabled = node.querySelector('.aet-ar-enabled').checked;
+        filters.style.display = enabled ? 'block' : 'none';
+        updateValue(readAutoRefresh(node));
+      };
+      node.querySelector('.aet-ar-make').addEventListener('change', function() {
+        const make = node.querySelector('.aet-ar-make').value;
+        const allowed = feedModels(vehicles, make);
+        const modelSelect = node.querySelector('.aet-ar-model');
+        const model = modelSelect.value.trim();
+        const nextModel = model && allowed.some(function(item) {
+          return item.toLowerCase() === model.toLowerCase();
+        }) ? model : '';
+        modelSelect.innerHTML = selectOptions(allowed, nextModel, 'Any model');
+        emit();
+      });
+      node.querySelector('.aet-ar-enabled').addEventListener('change', emit);
+      node.querySelectorAll('.aet-ar-model, .aet-ar-year-min, .aet-ar-year-max, .aet-ar-price-min, .aet-ar-price-max, .aet-ar-condition').forEach(function(input) {
+        input.addEventListener('change', emit);
+      });
+    }
+  })
+});
 
 unlayer.registerTool({
   name: "aet_vehicle",
@@ -428,6 +624,20 @@ unlayer.registerTool({
           label: 'Vehicle',
           defaultValue: {},
           widget: 'vehicle_widget'
+        },
+        autoRefresh: {
+          label: '',
+          defaultValue: {
+            enabled: false,
+            make: '',
+            model: '',
+            yearMin: '',
+            yearMax: '',
+            priceMin: '',
+            priceMax: '',
+            conditions: []
+          },
+          widget: 'auto_refresh_widget'
         },
         containerWidth: {
           label: "Container Width",
@@ -453,7 +663,8 @@ unlayer.registerTool({
           label: '',
           defaultValue: {
             enabled: false,
-            color: '#808080'
+            color: '#808080',
+            label: 'MSRP'
           },
           widget: 'show_msrp_with_color_widget',
         },
@@ -461,7 +672,8 @@ unlayer.registerTool({
           label: '',
           defaultValue: {
             enabled: true,
-            color: '#000000'
+            color: '#000000',
+            label: 'Price'
           },
           widget: 'show_price_with_color_widget',
         },
@@ -469,7 +681,8 @@ unlayer.registerTool({
           label: '',
           defaultValue: {
             enabled: false,
-            color: '#2E7D32'
+            color: '#2E7D32',
+            label: 'Sale Price'
           },
           widget: 'show_sale_price_with_color_widget',
         },
@@ -511,9 +724,18 @@ unlayer.registerTool({
         }
       };
       return newVal;
-    } else {
-      return values;
     }
+    if (name === 'autoRefresh') {
+      const wasEnabled = !!(values.autoRefresh && values.autoRefresh.enabled);
+      const next = value && value.enabled && !wasEnabled
+        ? prefillAutoRefresh(value, values.vehicle)
+        : normalizeAutoRefresh(value);
+      return {
+        ...values,
+        autoRefresh: next
+      };
+    }
+    return values;
   },
   values: {},
   renderer: {
